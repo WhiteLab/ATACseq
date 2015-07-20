@@ -16,7 +16,7 @@ def get_cinder_show_attr(cinder_show_output, attr):
     
 def wait_until_status(status, status_verb, cinder_id, timeout):
     ''' Wait until a certain status is observed '''
-    src_cmd = '. /home/ubuntu/.novarc;'
+    src_cmd = '. /home/ubuntu/.novarc; '
     sleep_time = 30
     sleep_cmd = 'sleep ' + str(sleep_time) + 's'
     elapsed_time = 0
@@ -45,7 +45,7 @@ def attach_cinder(snapshot_id, vm_id, bid, cinder_size, vm_ip, timeout, mount_sh
         + snapshot_id + ' to VM with ID ' + vm_id + '\n')
         
     # Source .novarc command
-    src_cmd = '. /home/ubuntu/.novarc;'
+    src_cmd = '. /home/ubuntu/.novarc; '
     
     # Build cinder create command
     cinder_create_cmd = (src_cmd + 'cinder create ' + str(cinder_size)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         help='Path to the mount.sh script on the VM')
     
     if len(sys.argv) == 1:
-        parser.print_help()
+        parser.print_help()f
         sys.exit(1)
 
     inputs = parser.parse_args()

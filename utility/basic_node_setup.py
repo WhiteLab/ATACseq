@@ -7,6 +7,17 @@ from setup_vm import setup_vm
 from attach_cinder import attach_cinder
 from date_time import date_time
 
+def parse_config(vm_config):
+    config_data = json.loads(open(vm_config, 'r').read())
+    return (config_data['vm_image']['id'],
+        config_data['vm_image']['flavor'],
+        config_data['vm_image']['key'],
+        config_data['cinder_ref']['snapshot_id'],
+        config_data['cinder_ref']['size'],
+        config_data['sh_scripts']['mount'],
+        config_data['sh_scripts']['unmount']
+    )
+
 def basic_node_setup(bid, vm_config, timeout):
     # Get VM config options from JSON file
     (vm_image_id, vm_flavor, vm_key,
@@ -25,17 +36,6 @@ def basic_node_setup(bid, vm_config, timeout):
     
     sys.stderr.write(date_time() + ': VM booted and cinder attached. VM generation successful.\n')
     
-def parse_config(vm_config):
-    config_data = json.loads(open(vm_config, 'r').read())
-    return (config_data['vm_image']['id'],
-        config_data['vm_image']['flavor'],
-        config_data['vm_image']['key'],
-        config_data['cinder_ref']['snapshot_id'],
-        config_data['cinder_ref']['size'],
-        config_data['sh_scripts']['mount'],
-        config_data['sh_scripts']['unmount']
-    )
-
 def main():
     # TODO add description
     parser = argparse.ArgumentParser()

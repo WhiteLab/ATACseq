@@ -21,7 +21,7 @@ def setup_vm(bid, image, flavor, key, timeout):
     sys.stderr.write(date_time() + ': Starting VM QC for sample set ' + str(bid) + '.\n')
     
     # Source .novarc command
-    src_cmd = '. /home/ubuntu/.novarc;'
+    src_cmd = '. /home/ubuntu/.novarc; '
     
     # Build nova boot command
     vm_name = 'vm_pipe_' + str(bid)
