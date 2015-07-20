@@ -79,6 +79,7 @@ def setup_vm(bid, image, flavor, key, timeout):
 if __name__ == '__main__':
     import argparse
     
+    # TODO add description
     parser = argparse.ArgumentParser()
     parser.add_argument('-id','--BID',dest='bid',help='Project Bionimbus ID.')
     parser.add_argument('-im','--image',help='Image ID to spawn.')

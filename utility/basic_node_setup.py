@@ -1,6 +1,7 @@
 import sys
 import json
 import argparse
+import traceback
 sys.path.append('/home/ubuntu/src/ATACseq/utility')
 from setup_vm import setup_vm
 from attach_cinder import attach_cinder
@@ -8,7 +9,7 @@ from date_time import date_time
 
 def basic_node_setup(bid, vm_config, timeout):
     # Get VM config options from JSON file
-    (vm_image_id, vm_flavor, vm_key
+    (vm_image_id, vm_flavor, vm_key,
         cinder_snapshot_id, cinder_size,
         mount_sh_path, unmount_sh_path) = parse_config(vm_config)
     # Setup VM here
@@ -16,15 +17,13 @@ def basic_node_setup(bid, vm_config, timeout):
         vm_id, vm_ip = setup_vm(bid, vm_image_id, vm_flavor, vm_key, timeout)
         # VM is setup, attach cinder block
         attach_cinder(cinder_snapshot_id, vm_id, bid,
-            cinder_size, vm_ip, timeout, sh_scripts_path)
+            cinder_size, vm_ip, timeout, mount_sh_path)
     except Exception as e:
-        sys.stderr.write(str(e))
+        sys.stderr.write('FATAL ERROR: ' + str(e) + '\n')
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     
     sys.stderr.write(date_time() + ': VM booted and cinder attached. VM generation successful.\n')
-        
-    
-    
     
 def parse_config(vm_config):
     config_data = json.loads(open(vm_config, 'r').read())
@@ -34,10 +33,11 @@ def parse_config(vm_config):
         config_data['cinder_ref']['snapshot_id'],
         config_data['cinder_ref']['size'],
         config_data['sh_scripts']['mount'],
-        condig_data['sh_scripts']['unmount']
+        config_data['sh_scripts']['unmount']
     )
 
 def main():
+    # TODO add description
     parser = argparse.ArgumentParser()
     parser.add_argument('-id', '--BID', dest='bid', required=True,
         help='Project Bionimbus ID.')

@@ -1,12 +1,12 @@
 {
     "vm_image":{
-        "id":"bbfb3aab-5e41-4e52-8f1f-178eedee70c4",
+        "id":"cf7b704c-e51b-4463-93cf-00ddfb2ce16b",
         "flavor":"1",
         "key":"dfitzgerald2"
     },
     "cinder_ref":{
         "snapshot_id":"285a7178-e56b-4187-abd9-206d28786577",
-        "size":"20"
+        "size":"200"
     },
     "sh_scripts":{
         "mount":"/home/ubuntu/scripts/mount.sh",
