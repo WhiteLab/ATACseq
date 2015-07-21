@@ -1,22 +1,24 @@
 import sys
 import subprocess
 import traceback
+import logging
 sys.path.append('/home/ubuntu/src/ATACseq/utility')
 from date_time import date_time
+
+# Get logger
+log = logging.getLogger('log')
 
 def download_from_swift(container, obj):
     src_cmd = '. /home/ubuntu/.novarc; '
     swift_download_cmd = (src_cmd + 'swift -v download '
         + container + ' --skip-identical --prefix ' + obj)
-    sys.stderr.write(date_time() + ': Attempting to run Swift download.\n')
-    sys.stderr.write(swift_download_cmd + '\n')
+    log.info('Attempting to run swift download for ' + container + ' -> ' + obj + '*')
+    log.debug(swift_download_cmd)
     try:
-        subprocess.check_output(swift_download_cmd, shell=True)
+        subprocess.check_call(swift_download_cmd, shell=True)
     except Exception:
-        sys.stderr.write(date_time() + ': Download of ' + obj + ' from '
-            + container + ' failed.\n')
         raise
-    sys.stderr.write(date_time() + ': Swift download successful.')
+    log.info('Swift download successful')
 
 if __name__ == '__main__':
     import argparse
@@ -31,10 +33,15 @@ if __name__ == '__main__':
         sys.exit(1)
     
     inputs = parser.parse_args()
+    
+    # Setup local logger
+    logging.basicConfig(format=format_string, datefmt=datefmt_string, level=logging.DEBUG)
+    
     try:
         download_from_swift(inputs.container, inputs.obj)
     except Exception as e:
-        sys.stderr.write('FATAL ERROR: ' + str(e) + '\n')
-        traceback.print_exc(file=sys.stderr)
+        log.critical('Swift download failed')
+        log.debug('Exception: ' + str(e))
+        log.debug(traceback.format_exc().rstrip('\n'))
         sys.exit(1)
 
