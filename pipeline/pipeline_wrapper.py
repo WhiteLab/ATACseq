@@ -12,9 +12,8 @@ from pipeline import run_ATACseq_pipeline
 
 def parse_config(config_file):
     config_data = json.loads(open(config_file, 'r').read())
-    return (config_data['refs']['container'],
-        config_data['refs']['obj'],
-        config_data['refs']['pipeline_config'])
+    return (config_data['swift_container'],
+        config_data['software_config_path'])
 
 def main():
     parser = argparse.ArgumentParser(description='Handles running pipeline.')
@@ -39,8 +38,7 @@ def main():
     
     # Get swift data from config file
     # TODO This could probably be a bit more robust, think about more
-    #container, obj, pipeline_config = parse_config(config_file)
-    container, obj, pipeline_config = 'PsychENCODE', '', ''
+    container, software_config_path = parse_config(config_file)
     
     # Setup logging
     format_string = '[%(levelname)s] %(asctime)s> %(message)s'
@@ -98,9 +96,7 @@ def main():
             
             obj_prefix = 'RAW/' + bid + '/' + bid + '_'
             fastq_dir = cwd + '/RAW/' + bid + '/'
-            lane_status = {} # TODO I'm not sure what purpose this serves
             for lane in lane_csv.split(', '):
-                lane_status[lane] = 'Initializing'
                 log.info('Listing fastq files from swift for ' + bid)
                 swift_list_cmd = (src_cmd + 'swift list ' + container
                     + ' --prefix ' + obj_prefix + lane)
@@ -119,12 +115,13 @@ def main():
                 fastq_files = map(lambda x: os.path.basename(x), fastq_file_paths)
                 
                 # Attempt to download fastq files from swift
-                try:
-                    download_from_swift(container, obj_prefix)
-                except Exception as e:
-                    log.error('Swift download failed. BID ' + bid + ' will not be run.')
-                    log.debug('Exception: ' + str(e))
-                    continue
+                # TODO Put this back in at some point
+#                try:
+#                    download_from_swift(container, obj_prefix)
+#                except Exception as e:
+#                    log.error('Swift download failed. BID ' + bid + ' will not be run.')
+#                    log.debug('Exception: ' + str(e))
+#                    continue
                 
                 # Make sure files were downloaded properly
                 # TODO Maybe an md5 or something here to make sure all is well?
@@ -151,7 +148,7 @@ def main():
                 
                 # Run ATACseq pipeline
                 try:
-                    run_ATACseq_pipeline()
+                    run_ATACseq_pipeline(software_config_path, fastq_files, ref_mnt)
                 except Exception as e:
                     log.error('ATACseq pipeline failed')
                     log.debug('Exception: ' + str(e))
@@ -178,11 +175,6 @@ def main():
                 log.debug('Exception: ' + str(e))
                 log.debug(traceback.format_exc().rstrip('\n'))
             log.removeHandler(log_file)
-            
-            
-            
-            
-# TODO Move log into appropriate folder
-# TODO Add removehandler above
+
 if __name__ == '__main__':
     main()

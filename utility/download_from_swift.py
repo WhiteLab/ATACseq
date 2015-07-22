@@ -35,6 +35,7 @@ if __name__ == '__main__':
     inputs = parser.parse_args()
     
     # Setup local logger
+    # TODO Those variables don't exist
     logging.basicConfig(format=format_string, datefmt=datefmt_string, level=logging.DEBUG)
     
     try:

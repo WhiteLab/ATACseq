@@ -1,0 +1,32 @@
+{
+    "fastx_clipper":{
+        "path":"/home/ubuntu/software/fastx_toolkit-0.0.14/bin/fastx_clipper",
+        "flags":{
+            "singletons":["-n", "-v", "-Q33"],
+            "arguments":{
+                "-a":["CTGTCTCTTATACACATCT"],
+                "-i":["{input_file}"],
+                "-o":["{output_file}"]
+            }
+        },
+        "arguments":[]
+    },
+    
+    "gzip":{
+        "path":"/bin/gzip",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_file}"]
+    },
+    
+    "gunzip":{
+        "path":"/bin/gunzip",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_file}"]
+    }
+}
