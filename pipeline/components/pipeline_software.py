@@ -22,3 +22,35 @@ class Gunzip(PipelineSoftwareBase):
 class Gzip(PipelineSoftwareBase):
     def __init__(self):
         PipelineSoftwareBase.__init__(self, 'gzip')
+        
+class FastQC(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'fastqc')
+        
+class BwaAln(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'bwa_aln')
+        
+class BwaSampe(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'bwa_sampe')
+        
+class SamtoolsView(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'samtools_view')
+        
+class FSeq(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'Fseq')
+
+class MACS2(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'MACS2')
+        
+class Bedtools(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'bedtools')
+        
+class PicardMarkDuplicates(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'picard_MarkDuplicates')

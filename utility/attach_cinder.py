@@ -99,7 +99,7 @@ if __name__ == "__main__":
         help='Path to the mount.sh script on the VM')
     
     if len(sys.argv) == 1:
-        parser.print_help()f
+        parser.print_help()
         sys.exit(1)
 
     inputs = parser.parse_args()

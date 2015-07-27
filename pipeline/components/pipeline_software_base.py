@@ -1,3 +1,4 @@
+import sys
 import subprocess
 import re
 import logging
@@ -6,21 +7,31 @@ from software_config_service import SoftwareConfigService
 log = logging.getLogger('log')
 
 class PipelineSoftwareBase:
-    ''' Superclass for a generic pipeline software'''
+    ''' Superclass for a generic pipeline software '''
     software_config_service = None
 
-    def __init__(self, software_name, software_config_service=None):
+    def __init__(self, software_name, software_config_service_inject=None):
         self.software_name = software_name
-        # If SoftwareConfig is given, try to inject
-        # Otherwise, check to make sure ComponentConfig is injected
+        # Try to inject SoftwareConfigService
+        self.set_software_config_service(software_config_service_inject)
+        
+        # Check to make sure SoftwareConfigService is present
         # If not, raise exception
-        if software_config_service:
-            self.set_software_config_service(software_config_service)
-        elif not PipelineSoftwareBase.software_config_service:
+        if not PipelineSoftwareBase.software_config_service:
             raise Exception('Must inject SoftwareConfigService before instantiating')
         self.software_config = (
             PipelineSoftwareBase.software_config_service.get_software_config(self.software_name))
         self.run_cmd = ''
+        
+        # Set logging
+        format_str = '%(asctime)s> %(message)s'
+        datefmt_str = '%Y%b%d %H:%M:%S'
+        self.log = logging.getLogger(self.software_name)
+        log_file_path = self.software_name + '.run.log' # TODO this might change
+        handler = logging.FileHandler(log_file_path)
+        handler.setFormatter(logging.Formatter(fmt=format_str, datefmt=datefmt_str))
+        self.log.addHandler(handler)
+        self.log.debug('Attached log file for ' + self.software_name)
     
     @classmethod
     def set_software_config_service(cls, software_config_service):
@@ -33,10 +44,13 @@ class PipelineSoftwareBase:
         if not self.run_cmd:
             log.error('Software run command has not yet been generated. '
                 + 'This software will NOT run.')
-        
-        print '########'
-        print self.run_cmd
-        print '########'
+        log.debug('Running command: ' + self.run_cmd)
+        s = subprocess.Popen(self.run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        while True:
+            line = s.stdout.readline().rstrip('\n')
+            if not line:
+                break
+            self.log.info(line)
         
     def generate_cmd(self, flags_args_dict, arguments_args_dict):
         path = self.get_path()

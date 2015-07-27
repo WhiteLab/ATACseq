@@ -15,7 +15,7 @@
     "gzip":{
         "path":"/bin/gzip",
         "flags":{
-            "singletons":[],
+            "singletons":["-v", "-f"],
             "arguments":{}
         },
         "arguments":["{input_file}"]
@@ -24,9 +24,89 @@
     "gunzip":{
         "path":"/bin/gunzip",
         "flags":{
-            "singletons":[],
+            "singletons":["-v", "-f"],
             "arguments":{}
         },
         "arguments":["{input_file}"]
+    },
+    
+    "fastqc":{
+        "path":"/home/ubuntu/software/FastQC/fastqc",
+        "flags":{
+            "singletons":["--outdir={out_dir}", "--extract"],
+            "arguments":{}
+        },
+        "arguments":["{input_file}"]
+    },
+    
+    "bwa_aln":{
+        "path":"/home/ubuntu/software/bwa-0.7.12/bwa aln",
+        "flags":{
+            "singletons":[],
+            "arguments":{
+                "-t":"1"
+            }
+        },
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/BWAIndex/genome.fa", "{input_file} > {output_file}"]
+    },
+    
+    "bwa_sampe":{
+        "path":"/home/ubuntu/software/bwa-0.7.12/bwa sampe",
+        "flags":{
+            "singletons":[],
+            "arguments":{
+                "-a":["2000"]
+            }
+        },
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/BWAIndex/genome.fa", 
+                    "{sai_1} {sai_2} {fastq_1} {fastq_2} > {output_file}"]
+    },
+    
+    "samtools_view":{
+        "path":"/usr/bin/samtools view",
+        "flags":{
+            "singletons":["-h", "-S"],
+            "arguments":{
+                "-F":["12"],
+                "-o":["{output_file}"]
+            }
+        },
+        "arguments":["{input_file}"]
+    },
+    
+    "FSeq":{
+        "path":"/home/ubuntu/software/F-seq/dist/fseq",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":[]
+    },
+    
+    "MACS2":{
+        "path":"/usr/local/bin/macs2",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":[]
+    },
+    
+    "bedtools":{
+        "path":"/home/ubuntu/software/bedtools2/bin/bedtools",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":[]
+    },
+    
+    "picard_MarkDuplicates":{
+        "path":"/usr/bin/java -Xmx2g -jar /home/ubuntu/software/picard/dist/picard.jar MarkDuplicates",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":[]
     }
 }

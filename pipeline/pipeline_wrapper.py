@@ -41,17 +41,17 @@ def main():
     container, software_config_path = parse_config(config_file)
     
     # Setup logging
-    format_string = '[%(levelname)s] %(asctime)s> %(message)s'
-    datefmt_string = '%Y%b%d %H:%M:%S'
+    format_str = '[%(levelname)s] %(asctime)s> %(message)s'
+    datefmt_str = '%Y%b%d %H:%M:%S'
     if verbosity == 1:
         log_level = logging.INFO
     elif verbosity > 1:
         log_level = logging.DEBUG
     else:
         log_level = logging.WARNING
-    logging.basicConfig(format=format_string, datefmt=datefmt_string, level=log_level)
+    logging.basicConfig(format=format_str, datefmt=datefmt_str, level=log_level)
     log = logging.getLogger('log')
-    log_formatter = logging.Formatter(fmt=format_string, datefmt=datefmt_string)
+    log_formatter = logging.Formatter(fmt=format_str, datefmt=datefmt_str)
     
     # Source command
     src_cmd = '. /home/ubuntu/.novarc; '
@@ -133,7 +133,7 @@ def main():
                     log.debug('Dir listing: ' + str(os.listdir(fastq_dir)))
                 
                 # Setup logs dir
-                log_dir = fastq_dir + '/logs'
+                log_dir = fastq_dir + 'logs'
                 log.info('Creating logs directory at ' + log_dir)
                 try:
                     subprocess.check_call('mkdir -p ' + log_dir, shell=True)
@@ -148,13 +148,15 @@ def main():
                 
                 # Run ATACseq pipeline
                 try:
-                    run_ATACseq_pipeline(software_config_path, fastq_files, ref_mnt)
+                    run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir)
                 except Exception as e:
                     log.error('ATACseq pipeline failed')
                     log.debug('Exception: ' + str(e))
                     log.debug(traceback.format_exc().rstrip('\n'))
                 
-                # Change back to working directory
+                # Move software log files, change back to working directory
+                mv_log_cmd = 'mv *.log ' + log_dir
+                subprocess.call(mv_log_cmd, shell=True)
                 os.chdir(cwd)
                 log.info('Changed to working directory')
                 
@@ -167,7 +169,8 @@ def main():
             
             # Move log file into log_dir
             mv_log_cmd = 'mv ' + log_file_path + ' ' + log_dir
-            log.info('Moving log file into log directory')
+            #mv_log_cmd = 'mv *.log ' + log_dir
+            log.info('Moving log files into log directory')
             try:
                 subprocess.check_call(mv_log_cmd, shell=True)
             except Exception as e:
