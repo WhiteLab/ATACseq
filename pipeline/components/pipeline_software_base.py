@@ -45,6 +45,7 @@ class PipelineSoftwareBase:
             log.error('Software run command has not yet been generated. '
                 + 'This software will NOT run.')
         log.debug('Running command: ' + self.run_cmd)
+        self.log.debug('Running command: ' + self.run_cmd)
         s = subprocess.Popen(self.run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while True:
             line = s.stdout.readline().rstrip('\n')

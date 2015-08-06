@@ -20,6 +20,10 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     
     # Preprocess fastq filenames
     fastq_files_prefix = [fastq_files[0].split('.')[0], fastq_files[1].split('.')[0]]
+    # If the first element in list is not the first read group, switch the elements
+    if fastq_files_prefix[0].split('_')[6] != '1':
+        fastq_files_prefix[0], fastq_files_prefix[1] = fastq_files_prefix[1], fastq_files_prefix[1]
+    # Get the library prefix
     lib_prefix = '_'.join(fastq_files_prefix[0].split('_')[:6])
     
     # Inject SoftwareConfigService
@@ -37,23 +41,51 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     macs2 = MACS2()
     bedtools = Bedtools()
     picard_mark_duplicates = PicardMarkDuplicates()
+    igv_tools = IGVTools()
+    script_sam_stats = ScriptSamStats()
+    script_recover_fragments = ScriptRecoverFragments()
+    cutadapt = CutAdapt()
     
     # Pipeline step: gunzip files
-    log.info('Gunzipping files')
-    for fastq in fastq_files:
-        gunzip.generate_cmd({}, {
-            'input_file':fastq
-        }).run()
+#    log.info('Gunzipping files')
+#    for fastq in fastq_files:
+#        gunzip.generate_cmd({}, {
+#            'input_file':fastq
+#        }).run()
+        
+        
     
     # Pipeline step: fastx_clipper
     # Input files start out as .txt, but I like to change it
     # to .fastq so that it's more obvious what it is
-    log.info('Running fastx_clipper')
-    for fastq in fastq_files_prefix:
-        fastx_clipper.generate_cmd({
-            'input_file':fastq + '.txt',
-            'output_file':fastq + '.clipped.fastq'
-        }, {}).run()
+    
+    # This is the paired-end run of cutadapt
+    log.info('Running pair-end cutadapt')
+    cutadapt.generate_cmd({
+        'output_file1': fastq_files_prefix[0] + '.clipped.fastq.gz',
+        'output_file2': fastq_files_prefix[1] + '.clipped.fastq.gz'
+    }, {
+        'input_file1': fastq_files_prefix[0] + '.txt.gz',
+        'input_file2': fastq_files_prefix[1] + '.txt.gz'
+    }).run()
+    
+    
+    # This is the single-end run of cutadapt
+#    log.info('Running cutadapt')
+#    for fastq in fastq_files_prefix:
+#        cutadapt.generate_cmd({
+#            'output_file': fastq + '.clipped.fastq'
+#        }, {
+#            'input_file': fastq + '.txt'
+#        }).run()
+        
+        
+    # This is the fastx_clipper run
+#    for fastq in fastq_files_prefix:
+#        fastx_clipper.generate_cmd({
+#            'input_file':fastq + '.txt',
+#            'output_file':fastq + '.clipped.fastq'
+#        }, {}).run()
         
     # Pipeline step: FastQC files
     # TODO Are we interested in parsing output?
@@ -65,7 +97,7 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         fastqc.generate_cmd({
             'out_dir':fastqc_output_dir
         }, {
-            'input_file':fastq + '.clipped.fastq'
+            'input_file':fastq + '.clipped.fastq.gz'
         }).run()
     
     # Check FastQC output
@@ -76,10 +108,10 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         # TODO something is wrong
     
     # Pipeline step: Gzip fastq files
-    for fastq in fastq_files_prefix:
-        gzip.generate_cmd({}, {
-            'input_file':fastq + '.clipped.fastq'
-        }).run()
+#    for fastq in fastq_files_prefix:
+#        gzip.generate_cmd({}, {
+#            'input_file':fastq + '.clipped.fastq'
+#        }).run()
     
     # Pipeline step: Align with bwa aln, then run bwa sampe
     for fastq in fastq_files_prefix:
@@ -87,6 +119,8 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
             'input_file':fastq + '.clipped.fastq.gz',
             'output_file':fastq + '.sai'
         }).run()
+        
+    
     bwa_sampe.generate_cmd({}, {
         'sai_1':fastq_files_prefix[0] + '.sai',
         'sai_2':fastq_files_prefix[1] + '.sai',
@@ -95,12 +129,27 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         'output_file':lib_prefix + '.sam'
     }).run()
     
-    for fastq in fastq_files_prefix:
-        samtools_view.generate_cmd({
-            'output_file':lib_prefix + '.12.sam'
-        }, {
-            'input_file':lib_prefix + '.sam'
-        }).run()
+    
+    samtools_view.generate_cmd({
+        'output_file':lib_prefix + '.12.sam'
+    }, {
+        'input_file':lib_prefix + '.sam'
+    }).run()
+    
+    script_sam_stats.generate_cmd({}, {
+        'input_file':lib_prefix + '.12.sam',
+        'output_file':lib_prefix + '.12.sam.stats'
+    }).run()
+    
+    script_recover_fragments.generate_cmd({}, {
+        'input_file':lib_prefix + '.12.sam',
+        'output_file':lib_prefix + '.frag.bed'
+    }).run()
+    
+    # TODO Run perl script to get alignment stats
+    # TODO Run perl script to recover fragments
+        
+    
         
         
     # TODO this is temporary

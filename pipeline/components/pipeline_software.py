@@ -41,7 +41,7 @@ class SamtoolsView(PipelineSoftwareBase):
         
 class FSeq(PipelineSoftwareBase):
     def __init__(self):
-        PipelineSoftwareBase.__init__(self, 'Fseq')
+        PipelineSoftwareBase.__init__(self, 'FSeq')
 
 class MACS2(PipelineSoftwareBase):
     def __init__(self):
@@ -54,3 +54,19 @@ class Bedtools(PipelineSoftwareBase):
 class PicardMarkDuplicates(PipelineSoftwareBase):
     def __init__(self):
         PipelineSoftwareBase.__init__(self, 'picard_MarkDuplicates')
+        
+class IGVTools(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'IGVTools')
+        
+class ScriptSamStats(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'script_sam_stats')
+        
+class ScriptRecoverFragments(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'script_recover_fragments')
+        
+class CutAdapt(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'cutadapt_pe')

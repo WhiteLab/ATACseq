@@ -1,6 +1,6 @@
 {
     "fastx_clipper":{
-        "path":"/home/ubuntu/software/fastx_toolkit-0.0.14/bin/fastx_clipper",
+        "path":"/usr/bin/fastx_clipper",
         "flags":{
             "singletons":["-n", "-v", "-Q33"],
             "arguments":{
@@ -10,6 +10,31 @@
             }
         },
         "arguments":[]
+    },
+    
+    "cutadapt":{
+        "path":"/usr/local/bin/cutadapt",
+        "flags":{
+            "singletons":[],
+            "arguments":{
+                "-a":["CTGTCTCTTATACACATCT"],
+                "-o":["{output_file}"]
+            }
+        },
+        "arguments":["{input_file}"]
+    },
+    "cutadapt_pe":{
+        "path":"/usr/local/bin/cutadapt",
+        "flags":{
+            "singletons":[],
+            "arguments":{
+                "-a":["CTGTCTCTTATACACATCT"],
+                "-A":["CTGTCTCTTATACACATCT"],
+                "-o":["{output_file1}"],
+                "-p":["{output_file2}"]
+            }
+        },
+        "arguments":["{input_file1}", "{input_file2}"]
     },
     
     "gzip":{
@@ -40,14 +65,14 @@
     },
     
     "bwa_aln":{
-        "path":"/home/ubuntu/software/bwa-0.7.12/bwa aln",
+        "path":"/home/ubuntu/software/bwa-0.7.5a/bwa aln",
         "flags":{
             "singletons":[],
             "arguments":{
-                "-t":"1"
+                "-t":"6"
             }
         },
-        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/BWAIndex/genome.fa", "{input_file} > {output_file}"]
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa_index/genome.fa", "{input_file} > {output_file}"]
     },
     
     "bwa_sampe":{
@@ -58,7 +83,7 @@
                 "-a":["2000"]
             }
         },
-        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/BWAIndex/genome.fa", 
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa_index/genome.fa", 
                     "{sai_1} {sai_2} {fastq_1} {fastq_2} > {output_file}"]
     },
     
@@ -108,5 +133,46 @@
             "arguments":{}
         },
         "arguments":[]
+    },
+    
+    "IGVTools":{
+        "path":"/home/ubuntu/software/IGVTools/igvtools",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":[]
+    },
+    
+    "script_sam_stats":{
+        "path":"/usr/bin/perl /home/ubuntu/software/scripts/sam_stats.pl",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_file}", "{output_file}"]
+    },
+    
+    "script_recover_fragments":{
+        "path":"/usr/bin/perl /home/ubuntu/software/scripts/recover_fragments.pl",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_file}", "{output_file}"]
+    },
+    
+    "trimmomatic":{
+        "path":"/usr/bin/java -jar /home/ubuntu/software/trimmomatic-0.33/trimmomatic-0.33.jar PE",
+        "flags":{
+            "singletons":["-phred33"],
+            "arguments":{
+                "-threads": "6"
+            }
+        },
+        "arguments":["{input_file1}", "{input_file2}", 
+                     "{output_file1_paired}", "{output_file1_unpaired}",
+                     "{output_file2_paired}", "{output_file2_unpaired}",
+                     "ILLUMINACLIP:{adapter_fa_path}:{seed_mismatch}:{pal_clip_thresh}:{smpl_clip_thresh}:{min_adapt_len}:{keep_both_reads_bool}"]
     }
 }
