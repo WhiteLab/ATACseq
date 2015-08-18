@@ -1,35 +1,13 @@
-{
-    "fastx_clipper":{
-        "path":"/usr/bin/fastx_clipper",
-        "flags":{
-            "singletons":["-n", "-v", "-Q33"],
-            "arguments":{
-                "-a":["CTGTCTCTTATACACATCT"],
-                "-i":["{input_file}"],
-                "-o":["{output_file}"]
-            }
-        },
-        "arguments":[]
-    },
-    
-    "cutadapt":{
-        "path":"/usr/local/bin/cutadapt",
-        "flags":{
-            "singletons":[],
-            "arguments":{
-                "-a":["CTGTCTCTTATACACATCT"],
-                "-o":["{output_file}"]
-            }
-        },
-        "arguments":["{input_file}"]
-    },
+{  
     "cutadapt_pe":{
         "path":"/usr/local/bin/cutadapt",
         "flags":{
-            "singletons":[],
+            "singletons":["--quality-base={quality_base}"],
             "arguments":{
                 "-a":["CTGTCTCTTATACACATCT"],
                 "-A":["CTGTCTCTTATACACATCT"],
+                "-m":["5"],
+                "-q":["{min_quality_score}"],
                 "-o":["{output_file1}"],
                 "-p":["{output_file2}"]
             }
@@ -65,14 +43,14 @@
     },
     
     "bwa_aln":{
-        "path":"/home/ubuntu/software/bwa-0.7.5a/bwa aln",
+        "path":"/home/ubuntu/software/bwa-0.7.12/bwa aln",
         "flags":{
             "singletons":[],
             "arguments":{
-                "-t":"6"
+                "-t":"8"
             }
         },
-        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa_index/genome.fa", "{input_file} > {output_file}"]
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa-0.7.12_index/genome.fa", "{input_file} > {output_file}"]
     },
     
     "bwa_sampe":{
@@ -80,23 +58,32 @@
         "flags":{
             "singletons":[],
             "arguments":{
-                "-a":["2000"]
+                "-a":["2000"],
+                "-n":["1"]
             }
         },
-        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa_index/genome.fa", 
-                    "{sai_1} {sai_2} {fastq_1} {fastq_2} > {output_file}"]
+        "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa-0.7.12_index/genome.fa", 
+                    "{sai_1} {sai_2} {fastq_1} {fastq_2}"]
     },
     
     "samtools_view":{
         "path":"/usr/bin/samtools view",
         "flags":{
-            "singletons":["-h", "-S"],
+            "singletons":["-h", "-S", "-b"],
             "arguments":{
-                "-F":["12"],
                 "-o":["{output_file}"]
             }
         },
         "arguments":["{input_file}"]
+    },
+    
+    "samtools_flagstat":{
+        "path":"/usr/bin/samtools flagstat",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_file} > {output_file}"]
     },
     
     "FSeq":{
@@ -117,13 +104,28 @@
         "arguments":[]
     },
     
-    "bedtools":{
-        "path":"/home/ubuntu/software/bedtools2/bin/bedtools",
+    "bedtools_intersect":{
+        "path":"/home/ubuntu/software/bedtools2/bin/bedtools intersect",
+        "flags":{
+            "singletons":["-v"],
+            "arguments":{
+                "-abam":["{input_file}"],
+                "-b":["{blacklist_bed}"],
+                "-f":["0.5"]
+            }
+        },
+        "arguments":["> {output_file}"]
+    },
+    
+    "bedtools_bamtobed":{
+        "path":"/home/ubuntu/software/bedtools2/bin/bedtools bamtobed",
         "flags":{
             "singletons":[],
-            "arguments":{}
+            "arguments":{
+                "-i":["{input_file}"]
+            }
         },
-        "arguments":[]
+        "arguments":["> {output_file}"]
     },
     
     "picard_MarkDuplicates":{
@@ -135,22 +137,27 @@
         "arguments":[]
     },
     
-    "IGVTools":{
-        "path":"/home/ubuntu/software/IGVTools/igvtools",
+    "igvtools_sort":{
+        "path":"/home/ubuntu/software/IGVTools/igvtools sort",
         "flags":{
             "singletons":[],
-            "arguments":{}
-        },
-        "arguments":[]
-    },
-    
-    "script_sam_stats":{
-        "path":"/usr/bin/perl /home/ubuntu/software/scripts/sam_stats.pl",
-        "flags":{
-            "singletons":[],
-            "arguments":{}
+            "arguments":{
+                "-t":["{tmp_dir}"]
+            }
         },
         "arguments":["{input_file}", "{output_file}"]
+    },
+    
+    "igvtools_count":{
+        "path":"/home/ubuntu/software/IGVTools/igvtools count",
+        "flags":{
+            "singletons":["--includeDuplicates"],
+            "arguments":{
+                "--maxZoom":["5"],
+                "---windowSize":["25"]
+            }
+        },
+        "arguments":["{input_file}", "{output_file}", "{genome_sizes_file}"]
     },
     
     "script_recover_fragments":{
@@ -162,17 +169,27 @@
         "arguments":["{input_file}", "{output_file}"]
     },
     
-    "trimmomatic":{
-        "path":"/usr/bin/java -jar /home/ubuntu/software/trimmomatic-0.33/trimmomatic-0.33.jar PE",
+    "novosort":{
+        "path":"/home/ubuntu/software/novocraft/novosort",
         "flags":{
-            "singletons":["-phred33"],
+            "singletons":[],
             "arguments":{
-                "-threads": "6"
+                "--threads": "8",
+                "--tmpcompression": "6",
+                "--tmpdir": "{tmp_dir}",
+                "--output": "{output_file}",
+                "--index": "{input_file}"
             }
         },
-        "arguments":["{input_file1}", "{input_file2}", 
-                     "{output_file1_paired}", "{output_file1_unpaired}",
-                     "{output_file2_paired}", "{output_file2_unpaired}",
-                     "ILLUMINACLIP:{adapter_fa_path}:{seed_mismatch}:{pal_clip_thresh}:{smpl_clip_thresh}:{min_adapt_len}:{keep_both_reads_bool}"]
-    }
+        "arguments":[]
+    },
+    
+    "script_offset_ATACseq":{
+        "path":"/usr/bin/python /home/ubuntu/software/scripts/offset_ATACseq_20bp_corrected.py",
+        "flags":{
+            "singletons":[],
+            "arguments":{}
+        },
+        "arguments":["{input_beds_prefix}"]
+    },
 }

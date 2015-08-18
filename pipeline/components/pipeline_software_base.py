@@ -2,13 +2,21 @@ import sys
 import subprocess
 import re
 import logging
-from software_config_service import SoftwareConfigService
+import json
 
 log = logging.getLogger('log')
 
-class PipelineSoftwareBase:
+class SoftwareConfigService(object):
+    def __init__(self, config_file):
+        self.software_config = json.loads(open(config_file, 'r').read())
+    
+    def get_software_config(self, software):
+        return self.software_config[software]
+
+class PipelineSoftwareBase(object):
     ''' Superclass for a generic pipeline software '''
     software_config_service = None
+
 
     def __init__(self, software_name, software_config_service_inject=None):
         self.software_name = software_name
@@ -19,9 +27,10 @@ class PipelineSoftwareBase:
         # If not, raise exception
         if not PipelineSoftwareBase.software_config_service:
             raise Exception('Must inject SoftwareConfigService before instantiating')
-        self.software_config = (
-            PipelineSoftwareBase.software_config_service.get_software_config(self.software_name))
-        self.run_cmd = ''
+        self.software_config = {}
+        self.get_default_software_config()
+        self.run_cmd = None
+        self.piped_cmd = None
         
         # Set logging
         format_str = '%(asctime)s> %(message)s'
@@ -33,38 +42,124 @@ class PipelineSoftwareBase:
         self.log.addHandler(handler)
         self.log.debug('Attached log file for ' + self.software_name)
     
+    
     @classmethod
     def set_software_config_service(cls, software_config_service):
         if (not cls.software_config_service 
         and isinstance(software_config_service, SoftwareConfigService)):
             cls.software_config_service = software_config_service
     
+    
+    def get_default_software_config(self):
+        self.software_config = (
+            PipelineSoftwareBase.software_config_service.get_software_config(self.software_name))
+        if 'flags' not in self.software_config:
+            self.software_config['flags'] = {}
+        else:
+            if 'singletons' not in self.software_config['flags']:
+                self.software_config['flags']['singletons'] = []
+            if 'arguments' not in self.software_config['flags']:
+                self.software_config['flags']['arguments'] = {}
+        if 'arguments' not in self.software_config:
+            self.software_config['arguments'] = []
+    
+    
+    def restore_default_config(self):
+        self.get_default_software_config()
+        return self
+    
+    
+    def add_flag(self, flag):
+        self.software_config['flags']['singletons'].append(flag)
+        return self
+    
+    
+    def add_flag_with_argument(self, flag, argument):
+        self.software_config['flags']['arguments'][flag] = argument
+        return self
+        
+    
+    def remove_flag(self, flag):
+        if flag in self.software_config['flags']['singletons']:
+            self.software_config['flags']['singletons'].remove(flag)
+        elif flag in self.software_config['flags']['arguments']:
+            del self.software_config['flags']['arguments'][flag]
+        return self
+    
+    
+    def clear_flags(self):
+        self.software_config['flags']['singletons'] = []
+        self.software_config['flags']['arguments'] = {}
+        return self
+    
+    
+    def append_argument(self, argument):
+        self.software_config['arguments'].append(argument)
+        return self
+        
+    
+    def pop_argument(self):
+        self.software_config['arguments'].pop()
+        return self
+    
+    
+    def clear_arguments(self):
+        self.software_config['arguments'] = []
+        return self
+        
+    
     def run(self):
         # TODO Maybe raise exception?
         if not self.run_cmd:
             log.error('Software run command has not yet been generated. '
                 + 'This software will NOT run.')
-        log.debug('Running command: ' + self.run_cmd)
-        self.log.debug('Running command: ' + self.run_cmd)
-        s = subprocess.Popen(self.run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        
+        # If a pipe command was given, add it to this command
+        if self.piped_cmd != None:
+            popen_run_cmd = self.run_cmd + ' | ' + self.piped_cmd
+        else:
+            popen_run_cmd = self.run_cmd
+        
+        # Log command into logs
+        log.debug('Running command: ' + popen_run_cmd)
+        self.log.debug('Running command: ' + popen_run_cmd)
+        
+        # Run commands, logging output
+        s = subprocess.Popen(popen_run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while True:
             line = s.stdout.readline().rstrip('\n')
             if not line:
                 break
             self.log.info(line)
         
-    def generate_cmd(self, flags_args_dict, arguments_args_dict):
-        path = self.get_path()
-        flags = self.get_flags(flags_args_dict)
-        arguments = self.get_arguments(arguments_args_dict)
-        self.run_cmd = ' '.join([path, flags, arguments])
+        # Piped command should not be persistent
+        self.piped_cmd = None
         return self
+    
+        
+    def generate_cmd(self, cmd_vars={}, pipe=None):
+        path = self.get_path()
+        flags = self.get_flags(cmd_vars)
+        arguments = self.get_arguments(cmd_vars)
+        self.run_cmd = ' '.join([path, flags, arguments])
+        
+        # If a pipe command was given, store it for later execution
+        if isinstance(pipe, PipelineSoftwareBase):
+            self.piped_cmd = pipe.get_run_cmd()
+        elif type(pipe) == str:
+            self.piped_cmd = pipe
+        
+        # Return self for chaining    
+        return self
+    
         
     def get_run_cmd(self):
         return self.run_cmd
+    
         
     def get_path(self):
         return self.software_config['path']
+    
         
     def get_flags(self, args_dict):
         # Get raw config lists
@@ -93,6 +188,7 @@ class PipelineSoftwareBase:
         # Return constructed flags string
         return full_flags
     
+    
     def get_arguments(self, args_dict):
         # Parse arguments list, replace {variable_keys}
         arguments_config = self.software_config['arguments']
@@ -101,6 +197,7 @@ class PipelineSoftwareBase:
         
         # Return constructed arguments string
         return arguments
+    
         
     def replace_var_keys(self, var_keys_str, args_dict):
         curlies = re.findall(r'{(\S+)}', var_keys_str)
@@ -108,4 +205,9 @@ class PipelineSoftwareBase:
             if var_key in args_dict:
                 var_keys_str = var_keys_str.replace('{' + var_key + '}', args_dict[var_key])
         return var_keys_str
+    
+        
+    def print_help(self):
+        # TODO I want this to print out usage for this software
+        print 'Help for ' + self.software_name
 

@@ -4,8 +4,7 @@ import logging
 import subprocess
 import xml.etree.ElementTree as ET
 sys.path.append('/home/ubuntu/src/ATACseq/pipeline/components')
-from pipeline_software_base import PipelineSoftwareBase
-from software_config_service import SoftwareConfigService
+from pipeline_software_base import PipelineSoftwareBase, SoftwareConfigService
 from pipeline_software import *
 
 def main():
@@ -30,32 +29,30 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     PipelineSoftwareBase.set_software_config_service(SoftwareConfigService(software_config_path))
     
     # Create software instances
-    gzip = Gzip()
-    fastx_clipper = FastxClipper()
-    gunzip = Gunzip()
     fastqc = FastQC()
     bwa_aln = BwaAln()
     bwa_sampe = BwaSampe()
     samtools_view = SamtoolsView()
+    samtools_flagstat = SamtoolsFlagstat()
     fseq = FSeq()
     macs2 = MACS2()
-    bedtools = Bedtools()
     picard_mark_duplicates = PicardMarkDuplicates()
-    igv_tools = IGVTools()
-    script_sam_stats = ScriptSamStats()
     script_recover_fragments = ScriptRecoverFragments()
     cutadapt = CutAdapt()
     
-    # Pipeline step: gunzip files
-#    log.info('Gunzipping files')
-#    for fastq in fastq_files:
-#        gunzip.generate_cmd({}, {
-#            'input_file':fastq
-#        }).run()
-        
-        
+    novosort = Software('novosort')
+    bedtools_intersect = Software('bedtools_intersect')
+    bedtools_bamtobed = Software('bedtools_bamtobed')
+    igvtools_sort = Software('igvtools_sort')
+    igvtools_count = Software('igvtools_count')
+    script_offset_ATACseq = Software('script_offset_ATACseq')
     
-    # Pipeline step: fastx_clipper
+    # Make temporary directory
+    tmp_dir = fastq_dir + 'tmp/'
+    subprocess.call('mkdir -p ' + tmp_dir, shell=True)
+        
+    ###########################
+    # Pipeline step: cutadapt
     # Input files start out as .txt, but I like to change it
     # to .fastq so that it's more obvious what it is
     
@@ -63,100 +60,137 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     log.info('Running pair-end cutadapt')
     cutadapt.generate_cmd({
         'output_file1': fastq_files_prefix[0] + '.clipped.fastq.gz',
-        'output_file2': fastq_files_prefix[1] + '.clipped.fastq.gz'
-    }, {
+        'output_file2': fastq_files_prefix[1] + '.clipped.fastq.gz',
+        'min_quality_score': '30',
+        'quality_base': '64',
         'input_file1': fastq_files_prefix[0] + '.txt.gz',
         'input_file2': fastq_files_prefix[1] + '.txt.gz'
     }).run()
     
-    
-    # This is the single-end run of cutadapt
-#    log.info('Running cutadapt')
-#    for fastq in fastq_files_prefix:
-#        cutadapt.generate_cmd({
-#            'output_file': fastq + '.clipped.fastq'
-#        }, {
-#            'input_file': fastq + '.txt'
-#        }).run()
-        
-        
-    # This is the fastx_clipper run
-#    for fastq in fastq_files_prefix:
-#        fastx_clipper.generate_cmd({
-#            'input_file':fastq + '.txt',
-#            'output_file':fastq + '.clipped.fastq'
-#        }, {}).run()
-        
-    # Pipeline step: FastQC files
-    # TODO Are we interested in parsing output?
+    # Make directory for FastQC output
     fastqc_output_dir = fastq_dir + 'fastqc_output/'
     subprocess.call('mkdir -p ' + fastqc_output_dir, shell=True)
     
     log.info('Running FastQC')
+    # Run the steps in this for loop separately for each fastq file
     for fastq in fastq_files_prefix:
+        #########################
+        # Pipeline step: FastQC 
+        # Get QC stats for fastq files
+        # TODO Are we interested in parsing output?
         fastqc.generate_cmd({
-            'out_dir':fastqc_output_dir
-        }, {
-            'input_file':fastq + '.clipped.fastq.gz'
+            'out_dir': fastqc_output_dir,
+            'input_file': fastq + '.clipped.fastq.gz'
         }).run()
-    
-    # Check FastQC output
-    fastqc_html_files = filter(None, 
-        map(lambda x: x if '.html' in x else None, os.listdir(fastqc_output_dir)))
-    if(not good_fastqc_output(fastqc_output_dir, fastqc_html_files)):
-        pass
-        # TODO something is wrong
-    
-    # Pipeline step: Gzip fastq files
-#    for fastq in fastq_files_prefix:
-#        gzip.generate_cmd({}, {
-#            'input_file':fastq + '.clipped.fastq'
-#        }).run()
-    
-    # Pipeline step: Align with bwa aln, then run bwa sampe
-    for fastq in fastq_files_prefix:
-        bwa_aln.generate_cmd({}, {
+        
+        ##########################
+        # Pipeline step: bwa aln
+        # Generate suffix array for bwa aligner
+        # Done for each fastq file
+        bwa_aln.generate_cmd({
             'input_file':fastq + '.clipped.fastq.gz',
             'output_file':fastq + '.sai'
         }).run()
         
-    
-    bwa_sampe.generate_cmd({}, {
+    ############################
+    # Pipeline step: bwa sampe
+    # Align reads in fastq files to reference
+    # Output in sorted BAM format
+    bwa_sampe.generate_cmd({
         'sai_1':fastq_files_prefix[0] + '.sai',
         'sai_2':fastq_files_prefix[1] + '.sai',
         'fastq_1':fastq_files_prefix[0] + '.clipped.fastq.gz',
-        'fastq_2':fastq_files_prefix[1] + '.clipped.fastq.gz',
-        'output_file':lib_prefix + '.sam'
+        'fastq_2':fastq_files_prefix[1] + '.clipped.fastq.gz'
+    }, pipe=(
+        samtools_view.generate_cmd({
+            'singletons': '-hSb',
+            'input_file': '-',
+            'output_file': lib_prefix + '.bam'
+        })
+    )).run()
+    
+    novosort.generate_cmd({
+        'tmpdir': tmp_dir,
+        'input_file': lib_prefix + '.bam',
+        'output_file': lib_prefix + '.sorted.bam'
+    }).run()
+    
+    ################################
+    # Pipeline step: samtools flagstat
+    # Generate alignment statistics
+    
+    samtools_flagstat.generate_cmd({
+        'input_file': lib_prefix + '.bam',
+        'output_file': lib_prefix + '.bam.flagstat'
+    }).run()
+    
+    ####################################
+    # Pipeline step: recover fragments
+    # Whatever that actually means
+    
+    #####################################################
+    # Pipeline step: Generate genome coverage bed files
+    
+    #####################################################
+    # Pipeline step: Remove blacklisted genomic regions
+    bedtools_intersect.generate_cmd({
+        'input_file': lib_prefix + '.sorted.bam',
+        'blacklist_bed': '/mnt/cinder/dfitzgeraldSCRATCH/annotation/hg19_blacklisted/hg19-blacklist.bed',
+        'output_file': lib_prefix + '.bl.sorted.bam'
+    }).run()
+    
+    bedtools_bamtobed.generate_cmd({
+        'input_file': lib_prefix + '.bl.sorted.bam',
+        'output_file': lib_prefix + '.bl.sorted.bed'
+    }).run()
+    
+    ### TODO Do we need to remove unaligned reads before peak calling?
+    ### Even if we want to keep them in BAMs, should they be removed later?
+    
+    ###################################################
+    # Pipeline step: Generate .tdf file with IGVTools
+    igvtools_sort.generate_cmd({
+        'tmp_dir': tmp_dir,
+        'input_file': lib_prefix + '.bl.sorted.bed',
+        'output_file': lib_prefix + '.bl.igvsorted.bed'
+    }).run()
+    
+    igvtools_count.generate_cmd({
+        'input_file': lib_prefix + '.bl.igvsorted.bed',
+        'output_file': lib_prefix + '.tdf',
+        'genome_sizes_file': '/mnt/cinder/dfitzgeraldSCRATCH/annotation/hg19_chrom_sizes/hg19.chrom.sizes'
+    }).run()
+    
+    ## Start processing files for peak calling
+    for partial_bed in ['99', '147', '83', '163']:
+        samtools_view.clear_flags().add_flag_with_argument('-bf', [partial_bed]).generate_cmd({
+            'input_file': lib_prefix + '.sorted.bam'
+        }, pipe=(
+            bedtools_bamtobed.generate_cmd({
+                'input_file': 'stdin',
+                'output_file': lib_prefix + '.' + partial_bed + '.bl.sorted.bed'
+            })
+        )).run()
+    
+    script_offset_ATACseq.generate_cmd({
+        'input_beds_prefix': lib_prefix
     }).run()
     
     
-    samtools_view.generate_cmd({
-        'output_file':lib_prefix + '.12.sam'
-    }, {
-        'input_file':lib_prefix + '.sam'
-    }).run()
+    # Pipeline step: Peak calling
     
-    script_sam_stats.generate_cmd({}, {
-        'input_file':lib_prefix + '.12.sam',
-        'output_file':lib_prefix + '.12.sam.stats'
-    }).run()
     
-    script_recover_fragments.generate_cmd({}, {
-        'input_file':lib_prefix + '.12.sam',
-        'output_file':lib_prefix + '.frag.bed'
-    }).run()
+    
+    
+    
+    
+#    script_recover_fragments.generate_cmd({
+#        'input_file':lib_prefix + '.12.sam',
+#        'output_file':lib_prefix + '.frag.bed'
+#    }).run()
     
     # TODO Run perl script to get alignment stats
     # TODO Run perl script to recover fragments
-        
-    
-        
-        
-    # TODO this is temporary
-    for fastq in fastq_files_prefix:
-        gzip.generate_cmd({}, {
-            'input_file':fastq + '.txt'
-        }).run()
     
     # Pipeline step: re-gzip files
 #    for fastq in fastq_files_prefix:
@@ -179,14 +213,4 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     
     # TODO Check to make sure we're in the correct directory
     log.info('ATACseq pipeline ran successfully')
-    
-def good_fastqc_output(fastqc_output_dir, fastqc_html_files):
-    for html in fastqc_html_files:
-        tree = ET.parse(fastqc_output_dir + html)
-        root = tree.getroot()
-        lis = root.iter('li')
-        fastqc_stats = []
-        for li in lis:
-            fastqc_stats.append(li[0].attrib['alt'])
-        # TODO What's the threshold
-    return True
+

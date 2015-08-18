@@ -9,20 +9,11 @@ from pipeline_software_base import PipelineSoftwareBase
 ## To customize behavior, override:
 ##   get_flags(self, args_dict)
 ##   get_arguments(self, args_dict)
-##   run(self)
+##   run(self, pipe=None)        
+class Software(PipelineSoftwareBase):
+    def __init__(self, name):
+        PipelineSoftwareBase.__init__(self, name)
 
-class FastxClipper(PipelineSoftwareBase):
-    def __init__(self):
-        PipelineSoftwareBase.__init__(self, 'fastx_clipper')
-
-class Gunzip(PipelineSoftwareBase):
-    def __init__(self):
-        PipelineSoftwareBase.__init__(self, 'gunzip')
-        
-class Gzip(PipelineSoftwareBase):
-    def __init__(self):
-        PipelineSoftwareBase.__init__(self, 'gzip')
-        
 class FastQC(PipelineSoftwareBase):
     def __init__(self):
         PipelineSoftwareBase.__init__(self, 'fastqc')
@@ -38,6 +29,10 @@ class BwaSampe(PipelineSoftwareBase):
 class SamtoolsView(PipelineSoftwareBase):
     def __init__(self):
         PipelineSoftwareBase.__init__(self, 'samtools_view')
+        
+class SamtoolsFlagstat(PipelineSoftwareBase):
+    def __init__(self):
+        PipelineSoftwareBase.__init__(self, 'samtools_flagstat')
         
 class FSeq(PipelineSoftwareBase):
     def __init__(self):
@@ -58,10 +53,6 @@ class PicardMarkDuplicates(PipelineSoftwareBase):
 class IGVTools(PipelineSoftwareBase):
     def __init__(self):
         PipelineSoftwareBase.__init__(self, 'IGVTools')
-        
-class ScriptSamStats(PipelineSoftwareBase):
-    def __init__(self):
-        PipelineSoftwareBase.__init__(self, 'script_sam_stats')
         
 class ScriptRecoverFragments(PipelineSoftwareBase):
     def __init__(self):
