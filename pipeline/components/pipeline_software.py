@@ -13,6 +13,7 @@ from pipeline_software_base import PipelineSoftwareBase
 class Software(PipelineSoftwareBase):
     def __init__(self, name):
         PipelineSoftwareBase.__init__(self, name)
+        #super(Software, self).__init__()
 
 class FastQC(PipelineSoftwareBase):
     def __init__(self):

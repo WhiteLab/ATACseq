@@ -1,4 +1,5 @@
 {
     "software_config_path":"/home/ubuntu/src/ATACseq/pipeline/config/software_config.json",
-    "swift_container":"PsychENCODE"
+    "swift_container":"PsychENCODE",
+    "synapse_user":"/home/ubuntu/src/ATACseq/pipeline/config/synapse_user.json"
 }

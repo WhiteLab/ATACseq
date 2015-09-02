@@ -12,8 +12,11 @@ from pipeline import run_ATACseq_pipeline
 
 def parse_config(config_file):
     config_data = json.loads(open(config_file, 'r').read())
+    synapse_user = json.loads(open(config_data['synapse_user'], 'r').read())
     return (config_data['swift_container'],
-        config_data['software_config_path'])
+        config_data['software_config_path'],
+        synapse_user['user'],
+        synapse_user['password'], 'todo')
 
 def main():
     parser = argparse.ArgumentParser(description='Handles running pipeline.')
@@ -38,7 +41,8 @@ def main():
     
     # Get swift data from config file
     # TODO This could probably be a bit more robust, think about more
-    container, software_config_path = parse_config(config_file)
+    (container, software_config_path,
+     syn_user, syn_pass, parent_syn_id) = parse_config(config_file)
     
     # Setup logging
     format_str = '[%(levelname)s] %(asctime)s> %(message)s'
@@ -71,6 +75,10 @@ def main():
             log.debug(traceback.format_exc().rstrip('\n'))
             log.critical('Terminating run now')
             sys.exit(1)
+    
+    # Load Synapse client
+#    syn = synapseclient.Synapse()
+#    syn.login(syn_user, syn_pass)
     
     # Open bid file, read line by line
     log.info('Opening file ' + bid_file_path)
@@ -116,15 +124,18 @@ def main():
                 
                 # Attempt to download fastq files from swift
                 # TODO Put this back in at some point
-#                try:
-#                    download_from_swift(container, obj_prefix)
-#                except Exception as e:
-#                    log.error('Swift download failed. BID ' + bid + ' will not be run.')
-#                    log.debug('Exception: ' + str(e))
-#                    continue
+                try:
+                    download_from_swift(container, obj_prefix)
+                except Exception as e:
+                    log.error('Swift download failed. BID ' + bid + ' will not be run.')
+                    log.debug('Exception: ' + str(e))
+                    continue
+                
                 
                 # Make sure files were downloaded properly
+                ########################################
                 # TODO Maybe an md5 or something here to make sure all is well?
+                ########################################
                 # TODO I'm not too sure how necessary this is
                 # TODO Should this give more than just a warning?
                 if not (os.path.isfile(fastq_dir + '/' + fastq_files[0]) 
@@ -146,9 +157,19 @@ def main():
                 os.chdir(fastq_dir)
                 log.info('Changed to directory ' + fastq_dir)
                 
+                ### I'm making the fastq files much smaller here
+                ### TODO This is only for debug purposes
+#                subprocess.call('zcat ' + fastq_files[0] + ' | head -400000 > small0.txt', shell=True)
+#                subprocess.call('zcat ' + fastq_files[1] + ' | head -400000 > small1.txt', shell=True)
+#                subprocess.call('rm ' + fastq_files[0] + ' ' + fastq_files[1], shell=True)
+#                subprocess.call('gzip small0.txt', shell=True)
+#                subprocess.call('gzip small1.txt', shell=True)
+#                subprocess.call('mv small0.txt.gz ' + fastq_files[0], shell=True)
+#                subprocess.call('mv small1.txt.gz ' + fastq_files[1], shell=True)
+                
                 # Run ATACseq pipeline
                 try:
-                    run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir)
+                    run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir, parent_syn_id)
                 except Exception as e:
                     log.error('ATACseq pipeline failed')
                     log.debug('Exception: ' + str(e))

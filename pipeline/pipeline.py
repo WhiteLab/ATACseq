@@ -7,6 +7,7 @@ sys.path.append('/home/ubuntu/src/ATACseq/pipeline/components')
 from pipeline_software_base import PipelineSoftwareBase, SoftwareConfigService
 from pipeline_software import *
 
+
 def main():
 	import argparse
 	parser = argparse.ArgumentParser(description='ATACseq pipeline')
@@ -14,7 +15,7 @@ def main():
 # TODO How does global variable affect multithreading?
 log = logging.getLogger('log')
 
-def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
+def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir, parent_syn_id):
     log.info('Running ATACseq pipeline')
     
     # Preprocess fastq filenames
@@ -35,7 +36,6 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     samtools_view = SamtoolsView()
     samtools_flagstat = SamtoolsFlagstat()
     fseq = FSeq()
-    macs2 = MACS2()
     picard_mark_duplicates = PicardMarkDuplicates()
     script_recover_fragments = ScriptRecoverFragments()
     cutadapt = CutAdapt()
@@ -46,10 +46,19 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     igvtools_sort = Software('igvtools_sort')
     igvtools_count = Software('igvtools_count')
     script_offset_ATACseq = Software('script_offset_ATACseq')
+    macs2_callpeak = Software('MACS2_callpeak')
     
     # Make temporary directory
     tmp_dir = fastq_dir + 'tmp/'
     subprocess.call('mkdir -p ' + tmp_dir, shell=True)
+    
+#    syn_file_raw_fastqs = []
+#    for i, fastq in enumerate(fastq_files_prefix):
+#        syn_fastq = File(
+#            path='',
+#            name='Raw ATACseq fastq ' + str(i),
+#            parent=parent_syn_id
+#        )
         
     ###########################
     # Pipeline step: cutadapt
@@ -62,10 +71,20 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         'output_file1': fastq_files_prefix[0] + '.clipped.fastq.gz',
         'output_file2': fastq_files_prefix[1] + '.clipped.fastq.gz',
         'min_quality_score': '30',
-        'quality_base': '64',
+        'quality_base': '33',
         'input_file1': fastq_files_prefix[0] + '.txt.gz',
         'input_file2': fastq_files_prefix[1] + '.txt.gz'
     }).run()
+    
+#    syn_act_cutadapt = Activity(
+#        name='Cutadapt Paired-end',
+#        description='Cutadapt Paired-end, trimming to adapters and quality >= 30',
+#        used=[syn_file_raw_fastqs[0], syn_file_raw_fastq[1]],
+#        executed=cutadapt.get_path()
+#    )
+#    
+#    syn_file_clipped_fastqs = []
+    
     
     # Make directory for FastQC output
     fastqc_output_dir = fastq_dir + 'fastqc_output/'
@@ -103,14 +122,13 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         'fastq_2':fastq_files_prefix[1] + '.clipped.fastq.gz'
     }, pipe=(
         samtools_view.generate_cmd({
-            'singletons': '-hSb',
             'input_file': '-',
             'output_file': lib_prefix + '.bam'
         })
     )).run()
     
     novosort.generate_cmd({
-        'tmpdir': tmp_dir,
+        'tmp_dir': tmp_dir,
         'input_file': lib_prefix + '.bam',
         'output_file': lib_prefix + '.sorted.bam'
     }).run()
@@ -124,6 +142,14 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         'output_file': lib_prefix + '.bam.flagstat'
     }).run()
     
+    (samtools_view.clear_flags().add_flag('-b')
+        .add_flag_with_argument('-F', ['12'])
+        .add_flag_with_argument('-o', [lib_prefix + '.unmappedrm.sorted.bam'])
+        .generate_cmd({
+            'input_file': lib_prefix + '.sorted.bam'
+        }).run()
+    )
+    
     ####################################
     # Pipeline step: recover fragments
     # Whatever that actually means
@@ -134,14 +160,14 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     #####################################################
     # Pipeline step: Remove blacklisted genomic regions
     bedtools_intersect.generate_cmd({
-        'input_file': lib_prefix + '.sorted.bam',
+        'input_file': lib_prefix + '.unmappedrm.sorted.bam',
         'blacklist_bed': '/mnt/cinder/dfitzgeraldSCRATCH/annotation/hg19_blacklisted/hg19-blacklist.bed',
-        'output_file': lib_prefix + '.bl.sorted.bam'
+        'output_file': lib_prefix + '.bl.unmappedrm.sorted.bam'
     }).run()
     
     bedtools_bamtobed.generate_cmd({
-        'input_file': lib_prefix + '.bl.sorted.bam',
-        'output_file': lib_prefix + '.bl.sorted.bed'
+        'input_file': lib_prefix + '.bl.unmappedrm.sorted.bam',
+        'output_file': lib_prefix + '.bl.unmappedrm.sorted.bed'
     }).run()
     
     ### TODO Do we need to remove unaligned reads before peak calling?
@@ -151,12 +177,12 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     # Pipeline step: Generate .tdf file with IGVTools
     igvtools_sort.generate_cmd({
         'tmp_dir': tmp_dir,
-        'input_file': lib_prefix + '.bl.sorted.bed',
-        'output_file': lib_prefix + '.bl.igvsorted.bed'
+        'input_file': lib_prefix + '.bl.unmappedrm.sorted.bed',
+        'output_file': lib_prefix + '.bl.unmappedrm.igvsorted.bed'
     }).run()
     
     igvtools_count.generate_cmd({
-        'input_file': lib_prefix + '.bl.igvsorted.bed',
+        'input_file': lib_prefix + '.bl.unmappedrm.igvsorted.bed',
         'output_file': lib_prefix + '.tdf',
         'genome_sizes_file': '/mnt/cinder/dfitzgeraldSCRATCH/annotation/hg19_chrom_sizes/hg19.chrom.sizes'
     }).run()
@@ -164,11 +190,11 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
     ## Start processing files for peak calling
     for partial_bed in ['99', '147', '83', '163']:
         samtools_view.clear_flags().add_flag_with_argument('-bf', [partial_bed]).generate_cmd({
-            'input_file': lib_prefix + '.sorted.bam'
+            'input_file': lib_prefix + '.bl.unmappedrm.sorted.bam'
         }, pipe=(
             bedtools_bamtobed.generate_cmd({
                 'input_file': 'stdin',
-                'output_file': lib_prefix + '.' + partial_bed + '.bl.sorted.bed'
+                'output_file': lib_prefix + '.' + partial_bed + '.bl.unmappedrm.sorted.bed'
             })
         )).run()
     
@@ -176,8 +202,28 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
         'input_beds_prefix': lib_prefix
     }).run()
     
+    ###### Peak Calling #########
+#    fseq_output_dir = fastq_dir + 'fseq_output/'
+#    subprocess.call('mkdir -p ' + fseq_output_dir, shell=True)
+    macs2_output_dir = fastq_dir + 'macs2_output/'
+    subprocess.call('mkdir -p ' + macs2_output_dir, shell=True)
     
-    # Pipeline step: Peak calling
+    # Pipeline step: Peak calling with Fseq
+    
+    # Pipeline step: Peak calling with MACS2
+    macs2_callpeak.generate_cmd({
+        'output_dir': macs2_output_dir,
+        'input_bed': lib_prefix + '.adjusted.bl.unmappedrm.sorted.bed',
+        'lib_prefix': lib_prefix
+    }).run()
+    
+    # Clean up a bit
+#    files_to_remove = (['*.clipped.fastq.gz', '*.txt.gz', '*.sai',
+#        lib_prefix + '.83.bl.unmappedrm.sorted.bed', lib_prefix + '.99.bl.unmappedrm.sorted.bed',
+#        lib_prefix + '.147.bl.unmappedrm.sorted.bed', lib_prefix + '.163.bl.unmappedrm.sorted.bed'])
+#    for file_to_rm in files_to_remove:
+#        subprocess.call('rm -rf ' + fastq_dir + file_to_rm, shell=True)
+    
     
     
     
@@ -208,7 +254,6 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir):
 #        'output_file':'input.clipped.fastq.1'
 #    }, {}).run()
 #    Gunzip().generate_cmd({}, {'input_file':'input.clippsed.fastq.1'}).run()
-    
     
     
     # TODO Check to make sure we're in the correct directory

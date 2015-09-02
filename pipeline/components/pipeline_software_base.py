@@ -3,6 +3,8 @@ import subprocess
 import re
 import logging
 import json
+from copy import deepcopy
+#from synapseclient import Activity, File
 
 log = logging.getLogger('log')
 
@@ -11,7 +13,7 @@ class SoftwareConfigService(object):
         self.software_config = json.loads(open(config_file, 'r').read())
     
     def get_software_config(self, software):
-        return self.software_config[software]
+        return deepcopy(self.software_config[software])
 
 class PipelineSoftwareBase(object):
     ''' Superclass for a generic pipeline software '''
@@ -37,9 +39,9 @@ class PipelineSoftwareBase(object):
         datefmt_str = '%Y%b%d %H:%M:%S'
         self.log = logging.getLogger(self.software_name)
         log_file_path = self.software_name + '.run.log' # TODO this might change
-        handler = logging.FileHandler(log_file_path)
-        handler.setFormatter(logging.Formatter(fmt=format_str, datefmt=datefmt_str))
-        self.log.addHandler(handler)
+        self.handler = logging.FileHandler(log_file_path)
+        self.handler.setFormatter(logging.Formatter(fmt=format_str, datefmt=datefmt_str))
+        self.log.addHandler(self.handler)
         self.log.debug('Attached log file for ' + self.software_name)
     
     
@@ -75,6 +77,8 @@ class PipelineSoftwareBase(object):
     
     
     def add_flag_with_argument(self, flag, argument):
+        if not isinstance(argument, list):
+            argument = [argument]
         self.software_config['flags']['arguments'][flag] = argument
         return self
         
@@ -210,4 +214,13 @@ class PipelineSoftwareBase(object):
     def print_help(self):
         # TODO I want this to print out usage for this software
         print 'Help for ' + self.software_name
+    
+    def add_provenance(self):
+        prov_config = self.software_config['synapse']
+        syn_inputs = []
 
+    def remove_log_handler(self):
+        self.log.removeHandler(self.handler)
+        
+    def __del__(self):
+        self.log.removeHandler(self.handler)

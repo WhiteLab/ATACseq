@@ -2,17 +2,24 @@
     "cutadapt_pe":{
         "path":"/usr/local/bin/cutadapt",
         "flags":{
-            "singletons":["--quality-base={quality_base}"],
+            "singletons":[
+                "--quality-base={quality_base}",
+                "--minimum-length=5",
+                "--output={output_file1}",
+                "--paired_output={output_file2}"],
             "arguments":{
                 "-a":["CTGTCTCTTATACACATCT"],
                 "-A":["CTGTCTCTTATACACATCT"],
-                "-m":["5"],
-                "-q":["{min_quality_score}"],
-                "-o":["{output_file1}"],
-                "-p":["{output_file2}"]
+                "-q":["{min_quality_score}"]
             }
         },
-        "arguments":["{input_file1}", "{input_file2}"]
+        "arguments":["{input_file1}", "{input_file2}"],
+        "synapse":{
+            "name":"Cutadapt Paired-end",
+            "description":"Cutadapt Paired-end, trimming to adapters and quality >= 30",
+            "used":["{input_file1}", "{input_file2}"],
+            "executed":"/usr/local/bin/cutadapt"
+        }
     },
     
     "gzip":{
@@ -36,7 +43,7 @@
     "fastqc":{
         "path":"/home/ubuntu/software/FastQC/fastqc",
         "flags":{
-            "singletons":["--outdir={out_dir}", "--extract"],
+            "singletons":["--outdir={out_dir}"],
             "arguments":{}
         },
         "arguments":["{input_file}"]
@@ -95,11 +102,16 @@
         "arguments":[]
     },
     
-    "MACS2":{
-        "path":"/usr/local/bin/macs2",
+    "MACS2_callpeak":{
+        "path":"/usr/local/bin/macs2 callpeak",
         "flags":{
             "singletons":[],
-            "arguments":{}
+            "arguments":{
+                "--outdir":["{output_dir}"],
+                "--treatment":["{input_bed}"],
+                "--format":["BED"],
+                "--name":["{lib_prefix}"]
+            }
         },
         "arguments":[]
     },
@@ -154,7 +166,7 @@
             "singletons":["--includeDuplicates"],
             "arguments":{
                 "--maxZoom":["5"],
-                "---windowSize":["25"]
+                "--windowSize":["25"]
             }
         },
         "arguments":["{input_file}", "{output_file}", "{genome_sizes_file}"]
@@ -176,9 +188,9 @@
             "arguments":{
                 "--threads": "8",
                 "--tmpcompression": "6",
-                "--tmpdir": "{tmp_dir}",
-                "--output": "{output_file}",
-                "--index": "{input_file}"
+                "--tmpdir":["{tmp_dir}"],
+                "--output":["{output_file}"],
+                "--index": ["{input_file}"]
             }
         },
         "arguments":[]
@@ -191,5 +203,5 @@
             "arguments":{}
         },
         "arguments":["{input_beds_prefix}"]
-    },
+    }
 }
