@@ -123,7 +123,6 @@ def main():
                 fastq_files = map(lambda x: os.path.basename(x), fastq_file_paths)
                 
                 # Attempt to download fastq files from swift
-                # TODO Put this back in at some point
                 try:
                     download_from_swift(container, obj_prefix)
                 except Exception as e:
@@ -159,13 +158,13 @@ def main():
                 
                 ### I'm making the fastq files much smaller here
                 ### TODO This is only for debug purposes
-#                subprocess.call('zcat ' + fastq_files[0] + ' | head -400000 > small0.txt', shell=True)
-#                subprocess.call('zcat ' + fastq_files[1] + ' | head -400000 > small1.txt', shell=True)
-#                subprocess.call('rm ' + fastq_files[0] + ' ' + fastq_files[1], shell=True)
-#                subprocess.call('gzip small0.txt', shell=True)
-#                subprocess.call('gzip small1.txt', shell=True)
-#                subprocess.call('mv small0.txt.gz ' + fastq_files[0], shell=True)
-#                subprocess.call('mv small1.txt.gz ' + fastq_files[1], shell=True)
+                subprocess.call('zcat ' + fastq_files[0] + ' | head -400000 > small0.txt', shell=True)
+                subprocess.call('zcat ' + fastq_files[1] + ' | head -400000 > small1.txt', shell=True)
+                subprocess.call('rm ' + fastq_files[0] + ' ' + fastq_files[1], shell=True)
+                subprocess.call('gzip small0.txt', shell=True)
+                subprocess.call('gzip small1.txt', shell=True)
+                subprocess.call('mv small0.txt.gz ' + fastq_files[0], shell=True)
+                subprocess.call('mv small1.txt.gz ' + fastq_files[1], shell=True)
                 
                 # Run ATACseq pipeline
                 try:

@@ -6,7 +6,7 @@
                 "--quality-base={quality_base}",
                 "--minimum-length=5",
                 "--output={output_file1}",
-                "--paired_output={output_file2}"],
+                "--paired-output={output_file2}"],
             "arguments":{
                 "-a":["CTGTCTCTTATACACATCT"],
                 "-A":["CTGTCTCTTATACACATCT"],
@@ -14,6 +14,7 @@
             }
         },
         "arguments":["{input_file1}", "{input_file2}"],
+        "stdout":"{summary_file}",
         "synapse":{
             "name":"Cutadapt Paired-end",
             "description":"Cutadapt Paired-end, trimming to adapters and quality >= 30",

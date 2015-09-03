@@ -73,8 +73,11 @@ def run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir, parent_sy
         'min_quality_score': '30',
         'quality_base': '33',
         'input_file1': fastq_files_prefix[0] + '.txt.gz',
-        'input_file2': fastq_files_prefix[1] + '.txt.gz'
+        'input_file2': fastq_files_prefix[1] + '.txt.gz',
+        'summary_file': lib_prefix + '.cutadapt.summary.log'
     }).run()
+    
+    return
     
 #    syn_act_cutadapt = Activity(
 #        name='Cutadapt Paired-end',

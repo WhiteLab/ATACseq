@@ -6,6 +6,8 @@ import json
 from copy import deepcopy
 #from synapseclient import Activity, File
 
+# This project is called Surf
+
 log = logging.getLogger('log')
 
 class SoftwareConfigService(object):
@@ -16,7 +18,9 @@ class SoftwareConfigService(object):
         return deepcopy(self.software_config[software])
 
 class PipelineSoftwareBase(object):
-    ''' Superclass for a generic pipeline software '''
+    '''
+    Superclass for a generic pipeline software
+    '''
     software_config_service = None
 
 
@@ -129,7 +133,7 @@ class PipelineSoftwareBase(object):
         self.log.debug('Running command: ' + popen_run_cmd)
         
         # Run commands, logging output
-        s = subprocess.Popen(popen_run_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        s = subprocess.Popen(popen_run_cmd, shell=True, stdout=subprocess.PIPE, stderr=sys.stdout.fileno())
         while True:
             line = s.stdout.readline().rstrip('\n')
             if not line:
@@ -145,7 +149,9 @@ class PipelineSoftwareBase(object):
         path = self.get_path()
         flags = self.get_flags(cmd_vars)
         arguments = self.get_arguments(cmd_vars)
-        self.run_cmd = ' '.join([path, flags, arguments])
+        stdout = self.get_stdout(cmd_vars)
+        stderr = self.get_stderr(cmd_vars)
+        self.run_cmd = ' '.join([path, flags, arguments, stdout, stderr])
         
         # If a pipe command was given, store it for later execution
         if isinstance(pipe, PipelineSoftwareBase):
@@ -153,7 +159,7 @@ class PipelineSoftwareBase(object):
         elif type(pipe) == str:
             self.piped_cmd = pipe
         
-        # Return self for chaining    
+        # Return self for chaining
         return self
     
         
@@ -162,14 +168,14 @@ class PipelineSoftwareBase(object):
     
         
     def get_path(self):
-        return self.software_config['path']
+        return self.software_config['path'] if 'path' in self.software_config else ''
     
         
     def get_flags(self, args_dict):
         # Get raw config lists
-        flags_config = self.software_config['flags']
-        singletons_config = flags_config['singletons']
-        arguments_config = flags_config['arguments']
+        flags_config = self.software_config['flags'] if 'flags' in self.software_config else {}
+        singletons_config = flags_config['singletons'] if 'singletons' in flags_config else []
+        arguments_config = flags_config['arguments'] if 'arguments' in flags_config else {}
         
         # Parse singletons, easy
         singletons = ' '.join(singletons_config)
@@ -195,12 +201,26 @@ class PipelineSoftwareBase(object):
     
     def get_arguments(self, args_dict):
         # Parse arguments list, replace {variable_keys}
-        arguments_config = self.software_config['arguments']
+        arguments_config = self.software_config['arguments'] if 'arguments' in self.software_config else []
         arguments = ' '.join(arguments_config)
         arguments = self.replace_var_keys(arguments, args_dict)
         
         # Return constructed arguments string
         return arguments
+        
+        
+    def get_stdout(self, cmd_vars):
+        stdout = self.software_config['stdout'] if 'stdout' in self.software_config else ''
+        if stdout != '':
+            return '1> ' + self.replace_var_keys(stdout, cmd_vars)
+        return ''
+    
+            
+    def get_stderr(self, cmd_vars):
+        stderr = self.software_config['stderr'] if 'stderr' in self.software_config else ''
+        if stderr != '':
+            return '2> ' + self.replace_var_keys(stderr, cmd_vars)
+        return ''
     
         
     def replace_var_keys(self, var_keys_str, args_dict):
