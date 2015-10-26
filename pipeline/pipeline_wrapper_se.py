@@ -5,10 +5,10 @@ import traceback
 import logging
 import argparse
 import json
-sys.path.append('/home/ubuntu/pipelines/ATACseq/utility')
+sys.path.append('/home/ubuntu/src/ATACseq/utility')
 from download_from_swift import download_from_swift
-sys.path.append('/home/ubuntu/pipelines/ATACseq/pipeline')
-from pipeline import run_ATACseq_pipeline
+sys.path.append('/home/ubuntu/src/ATACseq/pipeline')
+from pipeline_se import run_ATACseq_pipeline
 
 def parse_config(config_file):
     config_data = json.loads(open(config_file, 'r').read())
@@ -16,7 +16,7 @@ def parse_config(config_file):
     return (config_data['swift_container'],
         config_data['software_config_path'],
         synapse_user['user'],
-        synapse_user['password'], 'todo')
+        synapse_user['password'], 'TODO')
 
 def main():
     parser = argparse.ArgumentParser(description='Handles running pipeline.')
@@ -28,7 +28,6 @@ def main():
     parser.add_argument('-m', '--mount', help='Reference mount drive location.')
     parser.add_argument('-v', '--verbose', action='count',
         help='Verbosity in log file. -v is INFO, -vv is DEBUG, omitted is WARNING.')
-    parser.add_argument('-s', '--step', default=0, type=int, help='Step to start at.')
             
     if len(sys.argv) == 1:
         parser.print_help()
@@ -39,7 +38,6 @@ def main():
     config_file = inputs.json
     ref_mnt = inputs.mount.rstrip('/')
     verbosity = inputs.verbose
-    start_step = inputs.step
     
     # Get swift data from config file
     # TODO This could probably be a bit more robust, think about more
@@ -104,12 +102,12 @@ def main():
             log.addHandler(log_file)
             log.info('Attached local log file at ' + log_file_path)
             
-            obj_prefix = 'RAW/' + bid + '/' + bid + '_'
-            fastq_dir = cwd + '/RAW/' + bid + '/'
+            obj_prefix = bid + '/'
+            fastq_dir = cwd + '/' + bid + '/'
             for lane in lane_csv.split(', '):
                 log.info('Listing fastq files from swift for ' + bid)
                 swift_list_cmd = (src_cmd + 'swift list ' + container
-                    + ' --prefix ' + obj_prefix + lane)
+                    + ' --prefix ' + obj_prefix)
                 log.debug(swift_list_cmd)
                 # Get swift listing
                 swift_list_cmd_output = subprocess.check_output(swift_list_cmd, shell=True)
@@ -123,26 +121,26 @@ def main():
                 if(len(fastq_file_paths) != 2):
                     log.warning('Unexpected number of fastq files found on swift for this lane')
                 fastq_files = map(lambda x: os.path.basename(x), fastq_file_paths)
-                if start_step <= 1:
-                    # Attempt to download fastq files from swift
-                    try:
-                        download_from_swift(container, obj_prefix)
-                    except Exception as e:
-                        log.error('Swift download failed. BID ' + bid + ' will not be run.')
-                        log.debug('Exception: ' + str(e))
-                        continue
-                    
-                    
-                    # Make sure files were downloaded properly
-                    ########################################
-                    # TODO Maybe an md5 or something here to make sure all is well?
-                    ########################################
-                    # TODO I'm not too sure how necessary this is
-                    # TODO Should this give more than just a warning?
-                    if not (os.path.isfile(fastq_dir + '/' + fastq_files[0]) 
-                        and os.path.isfile(fastq_dir + '/' + fastq_files[1])):
-                        log.warning('Expected files don\'t actually exist')
-                        log.debug('Dir listing: ' + str(os.listdir(fastq_dir)))
+                
+                # Attempt to download fastq files from swift
+                try:
+                    download_from_swift(container, obj_prefix)
+                except Exception as e:
+                    log.error('Swift download failed. BID ' + bid + ' will not be run.')
+                    log.debug('Exception: ' + str(e))
+                    continue
+                
+                
+                # Make sure files were downloaded properly
+                ########################################
+                # TODO Maybe an md5 or something here to make sure all is well?
+                ########################################
+                # TODO I'm not too sure how necessary this is
+                # TODO Should this give more than just a warning?
+                if not (os.path.isfile(fastq_dir + '/' + fastq_files[0]) 
+                    and os.path.isfile(fastq_dir + '/' + fastq_files[1])):
+                    log.warning('Expected files don\'t actually exist')
+                    #log.debug('Dir listing: ' + str(os.listdir(fastq_dir)))
                 
                 # Setup logs dir
                 log_dir = fastq_dir + 'logs'
@@ -170,7 +168,7 @@ def main():
                 
                 # Run ATACseq pipeline
                 try:
-                    run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir, parent_syn_id, start_step)
+                    run_ATACseq_pipeline(software_config_path, fastq_files, fastq_dir, parent_syn_id)
                 except Exception as e:
                     log.error('ATACseq pipeline failed')
                     log.debug('Exception: ' + str(e))

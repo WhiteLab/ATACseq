@@ -1,0 +1,5 @@
+{
+    "software_config_path":"/home/ubuntu/src/ATACseq/pipeline/config/software_config_se.json",
+    "swift_container":"PsychENCODE_Crawford",
+    "synapse_user":"/home/ubuntu/src/ATACseq/pipeline/config/synapse_user.json"
+}

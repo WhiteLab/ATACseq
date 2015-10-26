@@ -1,44 +1,24 @@
 {  
-    "cutadapt_pe":{
+    "cutadapt_se":{
         "path":"/usr/local/bin/cutadapt",
         "flags":{
             "singletons":[
                 "--quality-base={quality_base}",
                 "--minimum-length=5",
-                "--output={output_file1}",
-                "--paired-output={output_file2}"],
+                "--output={output_file1}"],
             "arguments":{
                 "-a":["CTGTCTCTTATACACATCT"],
-                "-A":["CTGTCTCTTATACACATCT"],
                 "-q":["{min_quality_score}"]
             }
         },
-        "arguments":["{input_file1}", "{input_file2}"],
-        "stdout":">{summary_file}",
+        "arguments":["{input_file1}"],
+        "stdout":"{summary_file}",
         "synapse":{
-            "name":"Cutadapt Paired-end",
+            "name":"Cutadapt Single-end",
             "description":"Cutadapt Paired-end, trimming to adapters and quality >= 30",
             "used":["{input_file1}", "{input_file2}"],
             "executed":"/usr/local/bin/cutadapt"
         }
-    },
-    
-    "gzip":{
-        "path":"/bin/gzip",
-        "flags":{
-            "singletons":["-v", "-f"],
-            "arguments":{}
-        },
-        "arguments":["{input_file}"]
-    },
-    
-    "gunzip":{
-        "path":"/bin/gunzip",
-        "flags":{
-            "singletons":["-v", "-f"],
-            "arguments":{}
-        },
-        "arguments":["{input_file}"]
     },
     
     "fastqc":{
@@ -63,18 +43,17 @@
         "stderr":">{output_log}"
     },
     
-    "bwa_sampe":{
-        "path":"/home/ubuntu/software/bwa-0.7.12/bwa sampe",
+    "bwa_samse":{
+        "path":"/home/ubuntu/software/bwa-0.7.12/bwa samse",
         "flags":{
             "singletons":[],
             "arguments":{
-                "-a":["2000"],
                 "-n":["1"]
             }
         },
         "arguments":["/mnt/cinder/dfitzgeraldSCRATCH/bwa-0.7.12_index/genome.fa", 
-                    "{sai_1} {sai_2} {fastq_1} {fastq_2}"],
-        "stderr":">{output_log}"
+                    "{sai_1}", "{fastq_1}"],
+        "stderr":"{output_log}"
     },
     
     "samtools_view":{
@@ -88,12 +67,6 @@
         "arguments":["{input_file}"]
     },
     
-    "grep_unique_alignments":{
-        "path":"grep",
-        "flags":{},
-        "arguments":["XT:A:U"]
-    },
-    
     "samtools_flagstat":{
         "path":"/usr/bin/samtools flagstat",
         "flags":{
@@ -101,15 +74,6 @@
             "arguments":{}
         },
         "arguments":["{input_file} > {output_file}"]
-    },
-    
-    "FSeq":{
-        "path":"/home/ubuntu/software/F-seq/dist/fseq",
-        "flags":{
-            "singletons":[],
-            "arguments":{}
-        },
-        "arguments":[]
     },
     
     "MACS2_callpeak":{
@@ -128,7 +92,7 @@
             }
         },
         "arguments":[],
-        "stdout":">{output_log}",
+        "stdout":"{output_log}",
         "stderr":"&1"
     },
     
@@ -180,7 +144,7 @@
             "arguments":{}
         },
         "arguments":[],
-        "stdout":">{output_log}",
+        "stdout":"{output_log}",
         "stderr":"&1"
     },
     
@@ -224,12 +188,11 @@
                 "--threads": "8",
                 "--tmpcompression": "6",
                 "--tmpdir":["{tmp_dir}"],
-                "--output":["{output_file}"],
-                "--index": ["{input_file}"]
+                "--output":["{output_file}"]
             }
         },
-        "arguments":[],
-        "stdout":">{output_log}",
+        "arguments":["{input_files}"],
+        "stdout":"{output_log}",
         "stderr":"&1"
     },
     
@@ -249,16 +212,12 @@
             "arguments":{
                 "":["{tag_directory}"],
                 "-style":["histone"],
-                "-o":["auto"],
-                "-localSize":["50000"],
-                "-size":["150"],
-                "-minDist":["50"],
-                "-fragLength":["0"],
-                "-fdr":["0.05"]
+                "-o":["auto"]
+                
             }
         },
         "arguments":[],
-        "stdout":">{output_log}",
+        "stdout":"{output_log}",
         "stderr":"&1"
     },
     
@@ -272,7 +231,7 @@
             }
         },
         "arguments":["{input_bed}"],
-        "stdout":">{output_log}",
+        "stdout":"{output_log}",
         "stderr":"&1"
     },
     
@@ -284,7 +243,7 @@
         },
         "arguments":["{input_txt}"],
         "stdout":"{output_bed}",
-        "stderr":">{output_log}"
+        "stderr":"{output_log}"
     },
     
     "SICER_rb":{
@@ -294,7 +253,7 @@
             "arguments":{}
         },
         "arguments":["{input_dir}", "{input_bed}", "{output_dir}", "hg19", "1", "25", "50", "0.74", "400", "100"],
-        "stdout":">{output_log}",
+        "stdout":"{output_log}",
         "stderr":"&1"
     }
 }

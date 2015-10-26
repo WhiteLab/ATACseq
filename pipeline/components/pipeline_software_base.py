@@ -212,14 +212,14 @@ class PipelineSoftwareBase(object):
     def get_stdout(self, cmd_vars):
         stdout = self.software_config['stdout'] if 'stdout' in self.software_config else ''
         if stdout != '':
-            return '1> ' + self.replace_var_keys(stdout, cmd_vars)
+            return '1>' + self.replace_var_keys(stdout, cmd_vars)
         return ''
     
             
     def get_stderr(self, cmd_vars):
         stderr = self.software_config['stderr'] if 'stderr' in self.software_config else ''
         if stderr != '':
-            return '2> ' + self.replace_var_keys(stderr, cmd_vars)
+            return '2>' + self.replace_var_keys(stderr, cmd_vars)
         return ''
     
         
